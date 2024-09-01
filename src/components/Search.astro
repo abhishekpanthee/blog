@@ -1,0 +1,118 @@
+---
+import '@pagefind/default-ui/css/ui.css'
+import SearchIcon from '@/components/icons/SearchIcon'
+
+const documents = [
+  { id: 1, title: 'Post One', body: 'This is the first post.' },
+  { id: 2, title: 'Post Two', body: 'This is the second post.' },
+];
+---
+
+<!-- Local Search Component -->
+<div class="relative">
+    <!-- Search Button -->
+    <button id="open-search" class="flex items-center justify-center rounded-md gap-1">
+        <SearchIcon />
+    </button>
+
+    <!-- Search Modal -->
+    <div id="search-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="relative w-full sm:max-w-[48rem] p-6 bg-white dark:bg-[#0a0910ec] shadow-lg rounded-lg">
+            <button id="close-search" class="absolute top-2 right-2 px-3 py-1 rounded-full bg-black text-white dark:bg-white dark:text-black">
+                Close
+            </button>
+
+            <!-- Search Input and Results -->
+            <div id="search-container" class="mt-8">
+                <input 
+                    type="text" 
+                    id="search-input" 
+                    placeholder="Type your search..."
+                    class="w-full p-3 border border-gray-300 rounded dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none"
+                />
+                <div id="search-results" class="mt-4"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import lunr from 'lunr';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const openSearchBtn = document.getElementById('open-search');
+        const closeSearchBtn = document.getElementById('close-search');
+        const searchModal = document.getElementById('search-modal');
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+
+        // Initialize Lunr.js
+        const idx = lunr(function () {
+            this.field('title');
+            this.field('body');
+            this.ref('id');
+
+            documents.forEach(doc => {
+                this.add(doc);
+            });
+        });
+
+        // Function to perform search
+        const performSearch = (query) => {
+            const results = idx.search(query);
+            searchResults.innerHTML = results.map(result => {
+                const doc = documents.find(d => d.id === parseInt(result.ref));
+                return `<div><strong>${doc.title}</strong>: ${doc.body}</div>`;
+            }).join('');
+        };
+
+        // Function to open the search modal
+        const openModal = () => {
+            searchModal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            searchInput.focus();
+        };
+
+        // Function to close the search modal
+        const closeModal = () => {
+            searchModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        };
+
+        // Event listener to open modal
+        openSearchBtn.addEventListener('click', openModal);
+
+        // Event listener to close modal
+        closeSearchBtn.addEventListener('click', closeModal);
+
+        // Event listener to close modal when clicking outside of it
+        searchModal.addEventListener('click', (e) => {
+            if (e.target === searchModal) {
+                closeModal();
+            }
+        });
+
+        // Event listener to close modal when pressing 'Escape'
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !searchModal.classList.contains('hidden')) {
+                closeModal();
+            }
+        });
+
+        // Event listener for search input
+        searchInput.addEventListener('input', (e) => {
+            performSearch(e.target.value);
+        });
+    });
+</script>
+
+<style is:global>
+    /* Modal Transition Styles */
+    #search-modal {
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    #search-modal.hidden {
+        opacity: 0;
+        visibility: hidden;
+    }
+</style>
